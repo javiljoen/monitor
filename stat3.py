@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
     ## table header
     data_heads = ('Time',
-                  'CPU%', 'RSS', 'VMS', 'Threads',
+                  'CPU%', 'Threads', 'RSS', 'VMS',
                   'IO reads', 'IO writes', 'IO read MB', 'IO written MB',
                   'PID', 'Process')
     out.write(sep.join(data_heads) + '\n')
@@ -90,7 +90,7 @@ if __name__ == '__main__':
             IOrb = IOrb // 1048576 # convert to MB
             IOwb = IOwb // 1048576 # convert to MB
 
-            data = (t, CPU, RSS, VMS, THD, IOr, IOw, IOrb, IOwb, p.pid, p.name)
+            data = (t, CPU, THD, RSS, VMS, IOr, IOw, IOrb, IOwb, p.pid, p.name)
             out.write(sep.join([str(n) for n in data]) + '\n')
 
         sleep(interval)
