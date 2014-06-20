@@ -2,18 +2,24 @@
 '''Per-process resource monitor
 
 Usage:
-    stat3.py CMD
+    stat3.py [-i INTERVAL] [-s SEP] [-o OUTPUT] CMD
     stat3.py -h
 
 Options:
-    -h --help   this message
+    -h --help    this message
+    -i INTERVAL  frequency of measurement in seconds [default: 0.5]
+    -s SEP       string for separating columns in output [default: \t]
+    -o OUTPUT    file to write the data to, if not stdout [default: -]
 
 Records the resource usage of the command CMD, including any child
-processes it spawns. CMD is specified just like a regular space-
-delimited shell command.
+processes it spawns. CMD is given as a regular shell command escaped
+with single quotes. (If not escaped, it may be unclear whether the
+options apply to the monitoring or the monitored process.)
 
 e.g.
-    stat3.py du -s /tmp
+    stat3.py 'sleep 2'
+
+Warning: Likely to fail on short-running commands (like `du -s .`)!
 
 This script is inspired by:
 
@@ -47,16 +53,21 @@ if __name__ == '__main__':
 
     ## settings
     args = docopt(__doc__)
-    child_args = args['CMD']
-    out = sys.stdout
-    interval = 0.5 # in seconds
-    sep = '\t'
+    interval = float(args['-i'])
+    sep = args['-s']
+    child_args = args['CMD'].split()
+    outfile = args['-o']
+
+    if outfile == '-':
+        out = sys.stdout
+    else:
+        out = open(outfile, 'w')
 
     ## table header
     data_heads = ('Time',
-                'CPU%', 'RSS', 'VMS', 'Threads',
-                'IO reads', 'IO writes', 'IO read MB', 'IO written MB',
-                'PID', 'Process')
+                  'CPU%', 'RSS', 'VMS', 'Threads',
+                  'IO reads', 'IO writes', 'IO read MB', 'IO written MB',
+                  'PID', 'Process')
     out.write(sep.join(data_heads) + '\n')
 
     ## start the process & record resource usage,
