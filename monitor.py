@@ -2,8 +2,8 @@
 '''Per-process resource monitor
 
 Usage:
-    stat3.py [-i INTERVAL] [-s SEP] [-o OUTPUT] CMD
-    stat3.py -h
+    monitor.py [-i INTERVAL] [-s SEP] [-o OUTPUT] CMD
+    monitor.py -h
 
 Options:
     -h --help    this message
@@ -17,7 +17,7 @@ with single quotes. (If not escaped, it may be unclear whether the
 options apply to the monitoring or the monitored process.)
 
 e.g.
-    stat3.py 'sleep 2'
+    monitor.py 'sleep 2'
 
 Warning: Likely to fail on short-running commands (like `du -s .`)!
 
