@@ -70,7 +70,7 @@ it from GitHub, `chmod +x` it, and run it.
 
 The simplest way to get the whole source folder is:
 
-	git clone [--depth=1] https://github.com/javiljoen/monitor
+	git clone [--depth=1] https://github.com/javiljoen/monitor.git
 
 where the `depth` parameter will get you the latest version only
 instead of the whole commit history.
