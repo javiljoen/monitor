@@ -2,13 +2,15 @@
 '''Per-process resource monitor
 
 Usage:
-    monitor.py [-i INTERVAL] [-s SEP] [-o OUTPUT] CMD
+    monitor.py [-i INTERVAL] [-s SEP] [-p PROCTYPE] [-o OUTPUT] CMD
     monitor.py -h
 
 Options:
     -h --help    this message
     -i INTERVAL  frequency of measurement in seconds [default: 0.5]
     -s SEP       string for separating columns in output [default: \t]
+    -p PROCTYPE  just process name ('pname') or
+                 full command ('cmdline') [default: pname]
     -o OUTPUT    file to write the data to, if not stdout [default: -]
 
 Records the resource usage of the command CMD, including any child
@@ -47,13 +49,14 @@ Tested with Python 3.3.4 and psutil 1.2.1.
 from time import sleep
 import psutil
 
-def monitor(command, interval, sep):
+def monitor(command, interval, sep, proctype):
     '''(str, float, str) -> list(str)
 
     Record resource usage of `command` every `interval` seconds,
     do some formatting and return the resource usage of `command` and
     each subprocess it spawned as a list of `sep`-separated strings:
     one line for each process at each sampling point in time.
+    `proctype` is either 'pname' or 'cmdline'.
 
     '''
     def measure_resources(p):
@@ -87,7 +90,7 @@ def monitor(command, interval, sep):
         return sep.join((str(n) for n in data))
 
     ## initialize
-    res_use = []
+    # res_use = []
     t = 0
 
     ## start the command running
@@ -109,14 +112,20 @@ def monitor(command, interval, sep):
         ## if using a `for` loop with formatting and IO (as above),
         ## the next process might end before it is measured
         resource_use = [measure_resources(p) for p in procs]
-        output_str = [format_resources(t, procs[i].pid, procs[i].name, resource_use[i], sep)
-                      for i in range(len(procs))]
-        res_use += output_str
+        # output_str = [format_resources(t, procs[i].pid, procs[i].name, resource_use[i], sep)
+        #               for i in range(len(procs))]
+        # res_use += output_str
+        for i in range(len(procs)):
+            if proctype == 'cmdline':
+                cmdline = ' '.join(procs[i].cmdline)
+                yield format_resources(t, procs[i].pid, cmdline, resource_use[i], sep)
+            else:
+                yield format_resources(t, procs[i].pid, procs[i].name, resource_use[i], sep)
 
         sleep(interval)
         t += interval
 
-    return res_use
+    # return res_use
 
 
 if __name__ == '__main__':
@@ -127,24 +136,30 @@ if __name__ == '__main__':
     args = docopt(__doc__)
     interval = float(args['-i'])
     sep = args['-s']
+    proctype = args['-p']
     child_args = args['CMD'].split()
     outfile = args['-o']
 
-    if outfile == '-':
-        out = sys.stdout
-    else:
-        out = open(outfile, 'w')
-
-    ## run the command and record resource usage
-    resource_use = monitor(child_args, interval, sep)
-
-    ## write out results
     data_heads = ('Time',
                   'CPU%', 'Threads', 'RSS', 'VMS',
                   'IO reads', 'IO writes', 'IO read MB', 'IO written MB',
                   'PID', 'Process')
-    out.write(sep.join(data_heads) + '\n')
 
-    for l in resource_use:
-        out.write(l + '\n')
+    if outfile != '-':
+        with open(outfile, 'w') as out:
+            # ## run the command and record resource usage
+            # resource_use = monitor(child_args, interval, sep)
+
+            ## write out results
+            out.write(sep.join(data_heads) + '\n')
+
+            # for l in resource_use:
+            for i, l in enumerate(monitor(child_args, interval, sep, proctype)):
+                out.write(l + '\n')
+                if i % 100 == 0:
+                    out.flush()
+    else:
+        sys.stdout.write(sep.join(data_heads) + '\n')
+        for l in monitor(child_args, interval, sep, proctype):
+            sys.stdout.write(l + '\n')
 
