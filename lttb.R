@@ -1,43 +1,52 @@
-# Largest-Triangle-Three-Buckets
-# https://github.com/sveinn-steinarsson/flot-downsample
-
-## Area of a triangle given duples of vertex coordinates
-A_tri = function(A, B, C) {
-  0.5 * abs((A[1] - C[1]) * (B[2] - A[2]) - (A[1] - B[1]) * (C[2] - A[2]))
-}
-
-## set up test data
-logfile = 'test/monitor.log'
-res = read.delim(logfile, as.is=TRUE)
-res = res[res$Process == 'samtools', 1:2]
-res = res[1:100,]
-res = as.matrix(res)
-
-## params
-N = nrow(res)
-n_bins = 9
-bin_width = (N - 2) / n_bins
-
-## set up output
-out = matrix(NA, nrow=(n_bins + 2), ncol=ncol(res))
-out[1, ] = res[1, ]
-out[nrow(out), ] = res[nrow(res), ]
-
-## LTTB algorithm
-for (i in 1 + 1:n_bins) {
-  A.i = out[i - 1, ]
-  if (i < n_bins) {
-    C.i = apply(res[floor(i * bin_width + 1:bin_width), ], 2, mean)
-    B = res[floor(((i - 1) * bin_width + 1):(i * bin_width)), , drop=F]
-  } else {
-    B = res[floor(((i - 1) * bin_width + 1):(N - 1)), , drop=F]
-    C.i = out[nrow(out), ]
+LTTB = function(data, n_bins) {
+  ## Downsample a time series using Steinarsson's
+  ## Largest-Triangle-Three-Buckets algorithm
+  ## https://github.com/sveinn-steinarsson/flot-downsample
+  ## Sveinn Steinarsson. 2013.
+  ## Downsampling Time Series for Visual Representation.
+  ## MSc thesis. University of Iceland.
+  
+  area_of_triangle = function(A, B, C) {
+    ## Area of a triangle given duples of vertex coordinates
+    return(0.5 * abs((A[1] - C[1]) * (B[2] - A[2]) - (A[1] - B[1]) * (C[2] - A[2])))
   }
-  B.i = B[which.max(apply(B, 1, A_tri, A=A.i, C=C.i)), ]
-  out[i, ] = B.i
+  
+  if (ncol(data) != 2) {
+    stop('Input must be a 2-column matrix (sorted by x-value)')
+  }
+  N = nrow(data)
+  bin_width = (N - 2) / n_bins
+  
+  ## set up output
+  out = matrix(NA, nrow=(n_bins + 2), ncol=ncol(data))
+  colnames(out) = colnames(data)
+  out[1, ] = data[1, ]
+  out[nrow(out), ] = data[nrow(data), ]
+  
+  ## In each bin (skipping the first and last data points)...
+  for (i in 1 + 1:n_bins) {
+    ## A = the saved point in the previous bin
+    ## or data[1, ] if this is the first bin
+    A = out[i - 1, ]
+    if (i < n_bins) {
+      ## C = the average of the points in the next bin
+      C = apply(data[floor(i * bin_width + 1:bin_width), ], 2, mean)
+      ## Bs = set of points in this bin
+      Bs = data[floor(((i - 1) * bin_width + 1):(i * bin_width)), , drop=FALSE]
+    } else {
+      ## if this is the last bin:
+      ## C = the last point in the input matrix
+      C = out[nrow(out), ]
+      ## the set of points in this bin might be less than bin_width,
+      ## hence the bin explicitly stretches only to data[N-1, ]
+      Bs = data[floor(((i - 1) * bin_width + 1):(N - 1)), , drop=FALSE]
+    }
+    ## save the point in this bin that makes the largest triangle
+    ## with the saved point in the previous bin
+    ## and the average of the points in the next bin
+    triangle_areas = apply(Bs, 1, area_of_triangle, A=A, C=C)
+    out[i, ] = Bs[which.max(triangle_areas), ]
+  }
+  
+  return(out)
 }
-
-out
-
-# plot(res[,1], res[,2], type='l')
-# lines(out[,1], out[,2], col='red')
