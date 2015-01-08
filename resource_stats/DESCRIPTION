@@ -4,9 +4,11 @@ Version: 0.1
 Authors@R: "Jack Viljoen <jack.viljoen@cpgr.org.za> [aut, cre]"
 Description: Process the resource usage stats returned by the `monitor.py`
     script, including summarizing, downsampling, and plotting.
-Depends: R (>= 3.0.2)
+Depends: R (>= 3.0.2), methods
 License: MIT
 LazyData: true
 Imports:
     plyr,
-    LTTB
+    LTTB,
+    reshape2,
+    ggplot2

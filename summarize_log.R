@@ -14,7 +14,7 @@ if (length(args) > 1) {
 }
 
 library(knitr)
-source('resource_stats/R/summarize_log.R')
+library(ResourceStats)
 
 res = read.delim(logfile, as.is=TRUE)
 log_summary = kable(summarize_log(res), output=FALSE)
