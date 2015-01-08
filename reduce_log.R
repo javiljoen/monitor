@@ -22,13 +22,3 @@ downsample_multiple_by_process = function(data, nbins) {
   }
   return(outdf)
 }
-
-
-logfile='test/monitor.log'
-
-res = read.delim(logfile, as.is=TRUE)
-
-res$Process = paste(res$Process, res$PID, sep=":")
-res = res[, names(res) != "PID"]
-
-downsample_multiple_by_process(data=res, nbins=10)
