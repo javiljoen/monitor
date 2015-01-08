@@ -44,12 +44,6 @@ The `psutil` loop is a reimplementation of the one in `profile-process`,
 returning the data instead of sending them to matplotlib for plotting,
 and breaking them up into usage stats per subprocess.
 
-There is also a separate R script for plotting the results.
-
-Usage:
-
-	plot_log.r log_file plot_file ['Title for plot']
-
 Dependencies
 ------------
 
@@ -75,3 +69,34 @@ The simplest way to get the whole source folder is:
 where the `depth` parameter will get you the latest version only
 instead of the whole commit history.
 
+
+Post-processing
+---------------
+
+There is also a separate R package `ResourceStats` for summarizing,
+downsampling (thinning), and plotting the resource use records.
+
+### Installation
+
+In R:
+
+```{r}
+library(devtools)
+install_bitbucket('cpgr/monitor') ## not sure this will work...
+```
+
+### Usage
+
+In R:
+
+```{r}
+library(ResourceStats}
+help(package='ResourceStats')
+```
+
+From the command line:
+
+```{bash}
+summarize_log.R log_file
+plot_log.R log_file plot_file ['Title for plot'] n_datapoints
+```
