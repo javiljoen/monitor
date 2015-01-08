@@ -1,16 +1,17 @@
 #' Downsample several columns by process
 #'
-#' Downsample a data frame with >2 columns with the LTTB algorithm,
+#' Downsample a data frame with > 2 columns with the LTTB algorithm,
 #' using the Split-Apply-Combine pattern to downsample the data for
-#' each Process in `data` separately.
+#' each Process in \code{data} separately.
 #'
 #' @param data The data frame to downsample. The first column must be
-#'   the Time column and there must be a column named "Process".
+#'   the "Time" column and there must be a column named "Process".
 #' @param nbins The (maximum) number of rows of data to return for
 #'   each process.
 #'
-#' @return A data frame of with the same columns as `data` but at
-#'   most `nbins` rows for each unique process in `data$Process`.
+#' @return A data frame with the same columns as \code{data} but at
+#'   most \code{nbins} rows for each unique process in
+#'   \code{data$Process}.
 #'
 #' @export
 downsample_multiple_by_process = function(data, nbins) {
