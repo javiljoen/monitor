@@ -2,22 +2,21 @@
 
 arg = commandArgs(trailingOnly=TRUE)
 
-# if (length(arg) == 0) {
-#   logfile = "resource.log"
-#   plotfile = "resource.pdf"
-#   plottitle = "test"
-# } else {
-  logfile = arg[1]
-  plotfile = arg[2]
-  if (length(arg) == 3) {
-    plottitle = arg[3]
-  } else {
-    plottitle = ""
-  }
-# }
+if (length(arg) < 2) {
+  stop("\n\tUSAGE: plot_log.r DATA.log PLOT.pdf ['PLOT TITLE']")
+}
 
+logfile = arg[1]
+plotfile = arg[2]
+if (length(arg) == 3) {
+  plottitle = arg[3]
+} else {
+  plottitle = ""
+}
+  
 library(ggplot2, quietly=TRUE)
 library(reshape2, quietly=TRUE)
+source('reduce_log.R')
 
 res = read.delim(logfile, as.is=TRUE)
 message(sprintf("Data read from %s", logfile))
@@ -25,7 +24,9 @@ message(sprintf("Data read from %s", logfile))
 res$Process = paste(res$Process, res$PID, sep=":")
 res = res[,names(res)!="PID"]
 
-molten = melt(res, id.vars=c("Time", "Process"))
+res_downsampled = downsample_multiple_by_process(data=res, nbins=30)
+
+molten = melt(res_downsampled, id.vars=c("Time", "Process"))
 
 molten$variable = factor(molten$variable,
                          levels=c("CPU.", "Threads",
