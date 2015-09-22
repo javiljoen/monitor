@@ -17,5 +17,7 @@ library(knitr)
 library(ResourceStats)
 
 res = read.delim(logfile, as.is=TRUE)
-log_summary = kable(summarize_log(res), output=FALSE)
+log_summary = summarize_log(res)
+names(log_summary)[2] = gsub('.log$', '', logfile)
+log_summary = kable(log_summary, output=FALSE)
 write(log_summary, file=summfile)
