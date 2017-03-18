@@ -9,19 +9,23 @@ Usage
 
 ::
 
-   monitor [-i INTERVAL] [-s SEPARATOR] [-o OUTPUT] CMD
+   monitor [OPTIONS] CMD
    monitor -h
 
 
 Options
--------
+^^^^^^^
 
 ::
 
-   -h --help    help message
-   -i INTERVAL  frequency of measurement in seconds [default: 0.5]
-   -s SEP       string for separating columns in output [default: \t]
-   -o OUTPUT    file to write the data to, if not stdout [default: -]
+   -i, --interval FLOAT            frequency of measurement in seconds
+   -s, --separator TEXT            string for separating columns in output
+   -p, --proctype [pname|cmdline]  pname: just process name;
+                                   cmdline: full command
+   -o, --output FILENAME           file to write the data to; - for stdout
+   --measure-io                    measure reads and writes, in addition to
+                                   CPU and RAM
+   -h, --help                      Show this message and exit.
 
 
 Records the resource usage of the command ``CMD``, including any child
@@ -33,7 +37,8 @@ e.g.::
 
    monitor 'sleep 2'
 
-Warning: Likely to fail on short-running commands (like ``du -s .``)!
+Note: If `--measure-io` was requested and the sampling interval is too short,
+the I/O measurements may fail, in which case they will return a value of -1.
 
 ------------------------------------------------------------------------
 

@@ -4,7 +4,7 @@ import click
 import psutil
 
 
-def monitor(command, interval=1.0, sep='\t', proctype='pname'):
+def monitor(command, interval=1.0, sep='\t', proctype='pname', measure_io=False):
     """Record resource usage of `command` every `interval` seconds.
 
     Returns the resource usage of `command` and each subprocess it
@@ -14,36 +14,53 @@ def monitor(command, interval=1.0, sep='\t', proctype='pname'):
     `proctype` must be either 'pname' or 'cmdline'.
     """
 
-    def measure_resources(process):
+    def measure_resources(process, measure_io=False):
         if process.is_running():
             cpu_percent = process.get_cpu_percent(interval=0)
             n_threads = process.get_num_threads()
             mem_info = process.get_memory_info()
-            io_counters = process.get_io_counters()
+
+            if not measure_io:
+                return cpu_percent, n_threads, mem_info
+
+            try:
+                io_counters = process.get_io_counters()
+            except psutil.AccessDenied:
+                io_counters = [-1] * 4
+
             return cpu_percent, n_threads, mem_info, io_counters
 
     def format_resources(t, pid, pname, res=None, sep='\t'):
-        """Convert bytes to MB and return fields as a `sep`-separated string.
+        bytes_per_mb = 2 ** 20
 
-        If measure_resources() returned None, return the string with empty
-        fields where appropriate.
-        """
-        if res is not None:
+        if len(res) == 4:
             cpu_percent, n_threads, mem_info, io_counters = res
-            bytes_per_mb = 2 ** 20
             mem_rss = mem_info[0] // bytes_per_mb
             mem_vms = mem_info[1] // bytes_per_mb
+
             reads, writes, read_bytes, written_bytes = io_counters
-            read_mb = read_bytes // bytes_per_mb
-            written_mb = written_bytes // bytes_per_mb
+
+            # Don't convert to MB if -1 (i.e. AccessDenied error)
+            if read_bytes >= 0:
+                read_mb = read_bytes // bytes_per_mb
+                written_mb = written_bytes // bytes_per_mb
+            else:
+                read_mb = -1
+                written_mb = -1
+
             data = (t,
                     cpu_percent, n_threads, mem_rss, mem_vms,
                     reads, writes, read_mb, written_mb,
                     pid, pname)
         else:
-            data = (t, '' * 8, pid, pname)
+            cpu_percent, n_threads, mem_info = res
+            mem_rss = mem_info[0] // bytes_per_mb
+            mem_vms = mem_info[1] // bytes_per_mb
+            data = (t,
+                    cpu_percent, n_threads, mem_rss, mem_vms,
+                    pid, pname)
 
-        return sep.join((str(n) for n in data))
+        return sep.join(str(n) for n in data)
 
     t = 0
     process = psutil.Popen(command, shell=False)
@@ -58,9 +75,12 @@ def monitor(command, interval=1.0, sep='\t', proctype='pname'):
         # Do all measurements first:
         # If doing formatting inside this `for` loop, the next process
         # might have ended before it is measured.
-        resource_use = [measure_resources(p) for p in processes]
+        resource_use = [measure_resources(p, measure_io) for p in processes]
 
         for proc, res in zip(processes, resource_use):
+            if res is None:
+                continue
+
             if proctype == 'cmdline':
                 pname = ' '.join(proc.cmdline)
             else:
@@ -84,7 +104,9 @@ def monitor(command, interval=1.0, sep='\t', proctype='pname'):
 @click.option('-o', '--output', default='-', show_default=True,
               type=click.File('w'),
               help='file to write the data to; - for stdout')
-def main(cmd, interval, separator, proctype, output):
+@click.option('--measure-io', default=False, show_default=False, is_flag=True,
+              help='measure reads and writes, in addition to CPU and RAM')
+def main(cmd, interval, separator, proctype, output, measure_io):
     """Per-process resource monitor
 
     Records the resource usage of the command CMD, including any child
@@ -95,16 +117,23 @@ def main(cmd, interval, separator, proctype, output):
     e.g.
         monitor 'sleep 2'
 
-    Warning: Likely to fail on short-running commands (like `du -s .`)!
+    Note: If `--measure-io` was requested and the sampling interval is too
+    short, the I/O measurements may fail, in which case they will return a
+    value of -1.
     """
-    cmd = cmd.split()
-    resource_usage = monitor(cmd, interval, separator, proctype)
-
-    data_heads = ('Time',
-                  'CPU%', 'Threads', 'RSS', 'VMS',
-                  'IO reads', 'IO writes', 'IO read MB', 'IO written MB',
-                  'PID', 'Process')
+    if measure_io:
+        data_heads = ('Time',
+                      'CPU%', 'Threads', 'RSS', 'VMS',
+                      'IO reads', 'IO writes', 'IO read MB', 'IO written MB',
+                      'PID', 'Process')
+    else:
+        data_heads = ('Time',
+                      'CPU%', 'Threads', 'RSS', 'VMS',
+                      'PID', 'Process')
     output.write(separator.join(data_heads) + '\n')
+
+    cmd = cmd.split()
+    resource_usage = monitor(cmd, interval, separator, proctype, measure_io)
 
     for i, line in enumerate(resource_usage):
         output.write(line + '\n')
