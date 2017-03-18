@@ -53,9 +53,6 @@ Dependencies
 
 Tested with Python 3.3.4 and `psutil 1.2.1`.
 
-The plotting script requires R and the R package `ggplot2`.
-It has been tested with R 3.0 and `ggplot2 1.0`.
-
 Installation
 ------------
 
@@ -69,34 +66,3 @@ The simplest way to get the whole source folder is:
 where the `depth` parameter will get you the latest version only
 instead of the whole commit history.
 
-
-Post-processing
----------------
-
-There is also a separate R package `ResourceStats` for summarizing,
-downsampling (thinning), and plotting the resource use records.
-
-### Installation
-
-In R:
-
-```{r}
-library(devtools)
-install_bitbucket('cpgr/monitor') ## not sure this will work...
-```
-
-### Usage
-
-In R:
-
-```{r}
-library(ResourceStats}
-help(package='ResourceStats')
-```
-
-From the command line:
-
-```{bash}
-summarize_log.R log_file
-plot_log.R log_file plot_file ['Title for plot'] n_datapoints
-```
