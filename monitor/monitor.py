@@ -1,33 +1,7 @@
-#!/usr/bin/env python3
-"""Per-process resource monitor
-
-Usage:
-    monitor [-i INTERVAL] [-s SEP] [-p PROCTYPE] [-o OUTPUT] CMD
-    monitor -h
-
-Options:
-    -h --help    this message
-    -i INTERVAL  frequency of measurement in seconds [default: 0.5]
-    -s SEP       string for separating columns in output [default: \t]
-    -p PROCTYPE  just process name ('pname') or
-                 full command ('cmdline') [default: pname]
-    -o OUTPUT    file to write the data to, if not stdout [default: -]
-
-Records the resource usage of the command CMD, including any child
-processes it spawns. CMD is given as a regular shell command escaped
-with single quotes. (If not escaped, it may be unclear whether the
-options apply to the monitoring or the monitored process.)
-
-e.g.
-    monitor 'sleep 2'
-
-Warning: Likely to fail on short-running commands (like `du -s .`)!
-
-"""
 from time import sleep
 
+import click
 import psutil
-from docopt import docopt
 
 
 def monitor(command, interval=1.0, sep='\t', proctype='pname'):
@@ -71,9 +45,7 @@ def monitor(command, interval=1.0, sep='\t', proctype='pname'):
 
         return sep.join((str(n) for n in data))
 
-    # res_use = []
     t = 0
-
     process = psutil.Popen(command, shell=False)
 
     # In each sampling interval:
@@ -100,34 +72,41 @@ def monitor(command, interval=1.0, sep='\t', proctype='pname'):
         t += interval
 
 
-def main():
-    args = docopt(__doc__)
-    interval = float(args['-i'])
-    sep = args['-s']
-    proctype = args['-p']
-    child_args = args['CMD'].split()
-    outfile = args['-o']
+@click.command(context_settings=dict(help_option_names=['-h', '--help']))
+@click.argument('cmd')
+@click.option('-i', '--interval', default=0.5, show_default=True,
+              help='frequency of measurement in seconds')
+@click.option('-s', '--separator', default='\t', show_default=False,
+              help=r'string for separating columns in output [default: \t]')
+@click.option('-p', '--proctype', default='pname', show_default=True,
+              type=click.Choice(['pname', 'cmdline']),
+              help='pname: just process name; cmdline: full command')
+@click.option('-o', '--output', default='-', show_default=True,
+              type=click.File('w'),
+              help='file to write the data to; - for stdout')
+def main(cmd, interval, separator, proctype, output):
+    """Per-process resource monitor
+
+    Records the resource usage of the command CMD, including any child
+    processes it spawns. CMD is given as a regular shell command escaped
+    with single quotes. (If not escaped, it may be unclear whether the
+    options apply to the monitoring or the monitored process.)
+
+    e.g.
+        monitor 'sleep 2'
+
+    Warning: Likely to fail on short-running commands (like `du -s .`)!
+    """
+    cmd = cmd.split()
+    resource_usage = monitor(cmd, interval, separator, proctype)
 
     data_heads = ('Time',
                   'CPU%', 'Threads', 'RSS', 'VMS',
                   'IO reads', 'IO writes', 'IO read MB', 'IO written MB',
                   'PID', 'Process')
+    output.write(separator.join(data_heads) + '\n')
 
-    resource_usage = monitor(child_args, interval, sep, proctype)
-
-    if outfile != '-':
-        with open(outfile, 'w') as out:
-            out.write(sep.join(data_heads) + '\n')
-
-            for i, line in enumerate(resource_usage):
-                out.write(line + '\n')
-                if i % 100 == 0:
-                    out.flush()
-    else:
-        print(sep.join(data_heads))
-        for line in resource_usage:
-            print(line)
-
-
-if __name__ == '__main__':
-    main()
+    for i, line in enumerate(resource_usage):
+        output.write(line + '\n')
+        if i % 100 == 0:
+            output.flush()

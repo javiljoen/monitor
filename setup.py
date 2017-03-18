@@ -14,7 +14,7 @@ setuptools.setup(
     packages=['monitor'],
 
     install_requires=[
-        'docopt',
+        'click',
         'psutil>=1,<2',
     ],
 
