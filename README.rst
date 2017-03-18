@@ -58,15 +58,18 @@ subprocess.
 Installation
 ------------
 
-``monitor.py`` is a simple, self-contained Python script, so just
-download it from GitHub, ``chmod +x`` it, and run it.
-
-The simplest way to get the whole source folder is::
+Download the source from GitHub::
 
    git clone [--depth=1] https://github.com/javiljoen/monitor.git
 
 where the ``depth`` parameter will get you the latest version only
 instead of the whole commit history.
+
+Then install the package into a virtual environment, e.g.::
+
+   conda create -n monitor python=3 psutil=1 docopt
+   source activate monitor
+   pip install monitor
 
 
 Requirements
@@ -84,7 +87,7 @@ Testing
 
 ::
 
-   monitor/monitor.py tests/testscript.sh
+   monitor monitor/tests/testscript.sh
 
 
 ------------------------------------------------------------------------
