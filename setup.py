@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name='monitor',
-    version='version="0.3.0"',
+    version='version="0.4.0"',
     url='https://github.com/javiljoen/monitor',
 
     author='Jack Viljoen',
